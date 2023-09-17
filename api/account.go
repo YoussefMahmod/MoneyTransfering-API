@@ -30,6 +30,31 @@ func (u Account) router(server *Server, svcHandler *services.AccountsServiceHand
 	serverGroup.DELETE("/:id", u.delAccount)
 }
 
+// TODO: split them into chunks and get each chunk concurrently
+func (a *Account) getAccountsList(c *gin.Context) {
+	accounts := a.serviceHandler.GetAll()
+
+	c.JSON(http.StatusOK, accounts)
+}
+
+func (a *Account) getAccount(c *gin.Context) {
+	id := c.Param("id")
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	account, exists := a.serviceHandler.GetOneByID(uuid)
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Element Not Found!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, account)
+}
+
 func (a *Account) createAccount(c *gin.Context) {
 	account := models.NewAccount()
 
@@ -71,31 +96,6 @@ func (a *Account) createAccountsInBulk(c *gin.Context) {
 	Logger.Info(fmt.Sprintf("INFO - %v accounts are ingested and ready to transfer", len(accounts)))
 
 	c.JSON(http.StatusCreated, accounts)
-}
-
-// TODO: split them into chunks and get each chunk concurrently
-func (a *Account) getAccountsList(c *gin.Context) {
-	accounts := a.serviceHandler.GetAll()
-
-	c.JSON(http.StatusOK, accounts)
-}
-
-func (a *Account) getAccount(c *gin.Context) {
-	id := c.Param("id")
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	account, exists := a.serviceHandler.GetOneByID(uuid)
-
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Element Not Found!"})
-		return
-	}
-
-	c.JSON(http.StatusOK, account)
 }
 
 func (a *Account) patchAccount(c *gin.Context) {
