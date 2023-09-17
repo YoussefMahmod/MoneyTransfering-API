@@ -9,24 +9,24 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type Server struct{
+type Server struct {
 	router *gin.Engine
 }
 
 var Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-func NewServer() *Server{
+func NewServer() *Server {
 	g := gin.Default()
-	
+
 	return &Server{
 		router: g,
 	}
 }
 
-func (s *Server) Start(port int) {// change to ENV
+func (s *Server) Start(port int) { // change to ENV
 	s.router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "I am Alive!"})
 	})
-	
+
 	s.router.Run(fmt.Sprintf(":%v", port))
 }
