@@ -6,7 +6,9 @@ import (
 	"io"
 	"moneytransfer-api/models"
 	"moneytransfer-api/services"
+	"moneytransfer-api/utils"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -85,12 +87,21 @@ func (a *Account) createAccountsInBulk(c *gin.Context) {
 		return
 	}
 
+	var wg sync.WaitGroup
+	chunk_length := len(accounts) / 10 // TODO: make it configurable
 	IAccounts := make([]models.IAccount, 0)
 
-	for i := range accounts {
-		accounts[i].SetDefaults()
-		IAccounts = append(IAccounts, &accounts[i])
+	for i := 0; i < len(accounts); i += chunk_length {
+		wg.Add(1)
+		go func(l int, r int) {
+			for ; l < r; l++ {
+				accounts[l].SetDefaults()
+				IAccounts = append(IAccounts, &accounts[l])
+			}
+			wg.Done()
+		}(i, utils.Min(i+chunk_length, len(IAccounts)-1))
 	}
+	wg.Wait()
 
 	a.serviceHandler.InsertMany(IAccounts)
 
