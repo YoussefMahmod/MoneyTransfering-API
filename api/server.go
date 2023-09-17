@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"moneytransfer-api/services"
+	"moneytransfer-api/store"
 	"net/http"
 	"os"
 
@@ -27,6 +29,10 @@ func (s *Server) Start(port int) { // change to ENV
 	s.router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "I am Alive!"})
 	})
+
+	dataStore := store.NewDatastore()
+
+	Account{}.router(s, services.NewAccountsServiceHandler(dataStore))
 
 	s.router.Run(fmt.Sprintf(":%v", port))
 }
