@@ -1,21 +1,19 @@
 package store
 
 import (
-	"moneytransfer-api/models"
+	customtypes "moneytransfer-api/utils/custom_types"
 	"sync"
-
-	"github.com/google/uuid"
 )
 
 type Datastore struct {
-	AccountsByID map[uuid.UUID]models.IAccount
+	AccountsByID customtypes.ShardMap
 	Mutex        sync.RWMutex
 }
 
 func NewDatastore() *Datastore {
 	return &Datastore{
 		// Index on Accounts(ID)
-		AccountsByID: make(map[uuid.UUID]models.IAccount),
+		AccountsByID: *customtypes.NewShardMap(16),
 		Mutex:        sync.RWMutex{},
 	}
 }

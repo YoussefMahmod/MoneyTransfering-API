@@ -4,6 +4,7 @@ import (
 	"errors"
 	"moneytransfer-api/models"
 	"moneytransfer-api/store"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,52 +19,64 @@ func NewAccountsServiceHandler(store *store.Datastore) *AccountsServiceHandler {
 }
 
 func (svc *AccountsServiceHandler) InsertOne(account models.IAccount) {
-	svc.store.AccountsByID[account.GetID()] = account
+	svc.store.AccountsByID.Set(account.GetID(), account)
 }
 
 func (svc *AccountsServiceHandler) InsertMany(accounts []models.IAccount) {
-	for _, account := range accounts {
-		svc.store.AccountsByID[account.GetID()] = account
+	var wg sync.WaitGroup
+	for idx := range accounts {
+		wg.Add(1)
+
+		go func(acc models.IAccount) {
+			svc.store.AccountsByID.Set(acc.GetID(), acc)
+			wg.Done()
+		}(accounts[idx])
 	}
+	wg.Wait()
 }
 
 func (svc *AccountsServiceHandler) GetAll() []models.IAccount {
-	accounts := make([]models.IAccount, len(svc.store.AccountsByID))
+	accounts := make([]models.IAccount, svc.store.AccountsByID.Count())
+	data := svc.store.AccountsByID.GetAll()
 
 	i := 0
-	for k := range svc.store.AccountsByID {
-		accounts[i] = svc.store.AccountsByID[k]
+	for k := range accounts {
+		accounts[i] = data[k].(models.IAccount)
 		i++
 	}
 
 	return accounts
 }
 
-func (svc *AccountsServiceHandler) GetOneByID(id uuid.UUID) (models.IAccount, bool) {
-	accountByID, exists := svc.store.AccountsByID[id]
+func (svc *AccountsServiceHandler) GetOneByID(id uuid.UUID) (interface{}, bool) {
+	accountByID, exists := svc.store.AccountsByID.Get(id)
 	return accountByID, exists
 }
 
-func (svc *AccountsServiceHandler) PatchOneByID(id uuid.UUID, account models.IAccount) (models.IAccount, error) {
-	_, exists := svc.store.AccountsByID[id]
+func (svc *AccountsServiceHandler) PatchOneByID(id uuid.UUID, account models.IAccount) (interface{}, error) {
+	_, exists := svc.store.AccountsByID.Get(id)
 	if !exists {
 		return nil, errors.New("invalid account id")
 	}
 
-	svc.store.AccountsByID[id].SetName(account.GetName())
-	svc.store.AccountsByID[id].SetBalance(account.GetBalance())
-	svc.store.AccountsByID[id].SetUpdatedAt(time.Now())
+	var x models.IAccount
+	y, _ := svc.store.AccountsByID.Get(id)
+	x = y.(models.IAccount)
 
-	return svc.store.AccountsByID[id], nil
+	x.SetName(account.GetName())
+	x.SetBalance(account.GetBalance())
+	x.SetUpdatedAt(time.Now())
+
+	return x, nil
 }
 
 func (svc *AccountsServiceHandler) DelOneByID(id uuid.UUID) bool {
-	_, exist := svc.store.AccountsByID[id]
+	_, exist := svc.store.AccountsByID.Del(id)
 
 	if !exist {
 		return false
 	}
 
-	delete(svc.store.AccountsByID, id)
+	svc.store.AccountsByID.Del(id)
 	return true
 }

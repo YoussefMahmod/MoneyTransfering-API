@@ -85,15 +85,16 @@ func (a *Account) createAccountsInBulk(c *gin.Context) {
 		return
 	}
 
-	IAccounts := make([]models.IAccount, len(accounts))
+	IAccounts := make([]models.IAccount, 0)
 
 	for i := range accounts {
 		accounts[i].SetDefaults()
-		IAccounts[i] = &accounts[i]
+		IAccounts = append(IAccounts, &accounts[i])
 	}
 
 	a.serviceHandler.InsertMany(IAccounts)
-	Logger.Info(fmt.Sprintf("INFO - %v accounts are ingested and ready to transfer", len(accounts)))
+
+	Logger.Info(fmt.Sprintf("INFO - %v accounts are ingested and ready to transfer", len(IAccounts)))
 
 	c.JSON(http.StatusCreated, accounts)
 }
