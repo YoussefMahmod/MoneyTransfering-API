@@ -20,7 +20,7 @@ func (u Account) router(server *Server, svcHandler *services.AccountsServiceHand
 	u.server = server
 	u.serviceHandler = svcHandler
 
-	serverGroup := server.Router.Group("/accounts")
+	serverGroup := server.Router.Group("/api/v1/accounts")
 	serverGroup.GET("/", u.getAccountsList)
 	serverGroup.GET("/:id", u.getAccount)
 	serverGroup.POST("/", u.createAccount)

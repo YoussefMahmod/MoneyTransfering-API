@@ -192,7 +192,7 @@ func restyPostAccount(server *httptest.Server, account models.IAccount) (*resty.
 	return client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(account).
-		Post(server.URL + "/accounts/")
+		Post(server.URL + "/api/v1/accounts/")
 }
 
 func restyPostAccountsInBulk(server *httptest.Server, bulk []models.IAccount) (*resty.Response, error) {
@@ -200,28 +200,28 @@ func restyPostAccountsInBulk(server *httptest.Server, bulk []models.IAccount) (*
 	return client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(bulk).
-		Post(server.URL + "/accounts/bulk")
+		Post(server.URL + "/api/v1/accounts/bulk")
 }
 
 func restyGetAllAccounts(server *httptest.Server) (*resty.Response, error) {
 	client := resty.New()
 	return client.R().
 		SetHeader("Content-Type", "application/json").
-		Get(server.URL + "/accounts/")
+		Get(server.URL + "/api/v1/accounts/")
 }
 
 func restyGetAccount(server *httptest.Server, account models.IAccount) (*resty.Response, error) {
 	client := resty.New()
 	return client.R().
 		SetHeader("Content-Type", "application/json").
-		Get(server.URL + fmt.Sprintf("/accounts/%v", account.GetID()))
+		Get(server.URL + fmt.Sprintf("/api/v1/accounts/%v", account.GetID()))
 }
 
 func restyDelAccount(server *httptest.Server, account models.IAccount) (*resty.Response, error) {
 	client := resty.New()
 	return client.R().
 		SetHeader("Content-Type", "application/json").
-		Delete(server.URL + fmt.Sprintf("/accounts/%v", account.GetID()))
+		Delete(server.URL + fmt.Sprintf("/api/v1/accounts/%v", account.GetID()))
 }
 
 func restyPatchAccount(server *httptest.Server, account models.IAccount) (*resty.Response, error) {
@@ -229,7 +229,7 @@ func restyPatchAccount(server *httptest.Server, account models.IAccount) (*resty
 	return client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(account).
-		Patch(server.URL + fmt.Sprintf("/accounts/%v", account.GetID()))
+		Patch(server.URL + fmt.Sprintf("/api/v1/accounts/%v", account.GetID()))
 }
 
 func matchAccounts(t *testing.T, acc1 models.IAccount, acc2 models.IAccount) {
