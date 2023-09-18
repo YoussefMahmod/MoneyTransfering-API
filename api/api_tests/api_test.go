@@ -3,13 +3,13 @@ package api_test
 import (
 	"encoding/json"
 	"fmt"
-	"moneytransfer-api/api"
-	"moneytransfer-api/models"
-	"moneytransfer-api/utils"
 	"net/http/httptest"
 	"sort"
 	"testing"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/api"
+	"github.com/YoussefMahmod/MoneyTransfering-API/models"
+	"github.com/YoussefMahmod/MoneyTransfering-API/utils"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"

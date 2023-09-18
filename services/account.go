@@ -2,11 +2,11 @@ package services
 
 import (
 	"errors"
-	"moneytransfer-api/models"
-	"moneytransfer-api/store"
 	"sync"
 	"time"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/models"
+	"github.com/YoussefMahmod/MoneyTransfering-API/store"
 	"github.com/google/uuid"
 )
 

@@ -1,8 +1,9 @@
 package store
 
 import (
-	customtypes "moneytransfer-api/utils/custom_types"
 	"sync"
+
+	customtypes "github.com/YoussefMahmod/MoneyTransfering-API/utils/custom_types"
 )
 
 type Datastore struct {

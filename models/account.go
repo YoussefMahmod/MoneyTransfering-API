@@ -2,10 +2,10 @@ package models
 
 import (
 	"encoding/json"
-	"moneytransfer-api/utils"
 	"sync"
 	"time"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/utils"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )

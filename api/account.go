@@ -3,10 +3,10 @@ package api
 import (
 	"fmt"
 	"io"
-	"moneytransfer-api/models"
-	"moneytransfer-api/services"
 	"net/http"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/models"
+	"github.com/YoussefMahmod/MoneyTransfering-API/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

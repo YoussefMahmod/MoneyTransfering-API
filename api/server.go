@@ -2,11 +2,11 @@ package api
 
 import (
 	"fmt"
-	"moneytransfer-api/services"
-	"moneytransfer-api/store"
 	"net/http"
 	"os"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/services"
+	"github.com/YoussefMahmod/MoneyTransfering-API/store"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"
 )
