@@ -12,7 +12,7 @@ import (
 )
 
 type Server struct {
-	router *gin.Engine
+	Router *gin.Engine
 }
 
 var Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -20,13 +20,11 @@ var Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 func NewServer() *Server {
 	g := gin.Default()
 
-	return &Server{
-		router: g,
+	s := &Server{
+		Router: g,
 	}
-}
 
-func (s *Server) Start(port int) { // change to ENV
-	s.router.GET("/", func(ctx *gin.Context) {
+	s.Router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "I am Alive!"})
 	})
 
@@ -34,5 +32,9 @@ func (s *Server) Start(port int) { // change to ENV
 
 	Account{}.router(s, services.NewAccountsServiceHandler(dataStore))
 
-	s.router.Run(fmt.Sprintf(":%v", port))
+	return s
+}
+
+func (s *Server) Start(port int) { // change to ENV
+	s.Router.Run(fmt.Sprintf(":%v", port))
 }
