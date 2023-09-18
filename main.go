@@ -1,6 +1,6 @@
 package main
 
-import "moneytransfer-api/api"
+import "github.com/YoussefMahmod/MoneyTransfering-API/api"
 
 func main() {
 	server := api.NewServer()

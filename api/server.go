@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/YoussefMahmod/MoneyTransfering-API/services"
+	"github.com/YoussefMahmod/MoneyTransfering-API/store"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"
 )
 
 type Server struct {
-	router *gin.Engine
+	Router *gin.Engine
 }
 
 var Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -18,15 +20,21 @@ var Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 func NewServer() *Server {
 	g := gin.Default()
 
-	return &Server{
-		router: g,
+	s := &Server{
+		Router: g,
 	}
-}
 
-func (s *Server) Start(port int) { // change to ENV
-	s.router.GET("/", func(ctx *gin.Context) {
+	s.Router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "I am Alive!"})
 	})
 
-	s.router.Run(fmt.Sprintf(":%v", port))
+	dataStore := store.NewDatastore()
+
+	Account{}.router(s, services.NewAccountsServiceHandler(dataStore))
+
+	return s
+}
+
+func (s *Server) Start(port int) { // change to ENV
+	s.Router.Run(fmt.Sprintf(":%v", port))
 }
