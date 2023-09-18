@@ -1,11 +1,16 @@
 package models
 
 import (
+	"encoding/json"
+	"moneytransfer-api/utils"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
+
+const CHUNK_THRESHOLD = 10
 
 type IAccount interface {
 	SetDefaults()
@@ -29,15 +34,44 @@ type account struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-func NewAccount() account {
-	acc := account{}
+func NewAccount(data []byte) (IAccount, error) {
+	var acc account
 	acc.SetDefaults()
-	return acc
+	err := json.Unmarshal(data, &acc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc, nil
 }
 
-func NewListAccounts() []account {
-	var acc []account
-	return acc
+func NewListAccounts(data []byte) ([]IAccount, error) {
+	var accountsBulk []account
+	var wg sync.WaitGroup
+
+	err := json.Unmarshal(data, &accountsBulk)
+	if err != nil {
+		return nil, err
+	}
+
+	accountsBulkLength := len(accountsBulk)
+	chunk_length := utils.Max(accountsBulkLength/CHUNK_THRESHOLD, 1)
+
+	res := make([]IAccount, accountsBulkLength)
+	for i := 0; i < accountsBulkLength; i += chunk_length {
+		wg.Add(1)
+		go func(l int, r int) {
+			for ; l < r; l++ {
+				accountsBulk[l].SetDefaults()
+				res[l] = &accountsBulk[l]
+			}
+			wg.Done()
+		}(i, utils.Min(i+chunk_length, accountsBulkLength))
+	}
+
+	wg.Wait()
+
+	return res, nil
 }
 
 func (a *account) SetDefaults() {
