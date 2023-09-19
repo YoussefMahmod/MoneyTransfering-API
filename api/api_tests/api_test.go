@@ -161,6 +161,219 @@ func TestBulkInsertionAccount(t *testing.T) {
 	}
 }
 
+func TestPostAccountTxn(t *testing.T) {
+	// t.Parallel()
+	senderAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	recieverAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	senderMoney := senderAccount.GetBalance()
+	recieverMoney := recieverAccount.GetBalance()
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, senderAccount)
+	restyPostAccount(server, recieverAccount)
+
+	testTxn, err := setupAccountTxn(senderAccount, recieverAccount)
+	assert.NoError(t, err)
+	assert.NotNil(t, testTxn)
+
+	res, err := restyCreateAccountTxn(server, senderAccount, testTxn)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+
+	res, err = restyGetAccount(server, senderAccount)
+	assert.NoError(t, err)
+
+	err = json.Unmarshal(res.Body(), &senderAccount)
+	assert.NoError(t, err)
+
+	res, err = restyGetAccount(server, recieverAccount)
+	assert.NoError(t, err)
+
+	err = json.Unmarshal(res.Body(), &recieverAccount)
+	assert.NoError(t, err)
+
+	assert.Equal(t, senderAccount.GetBalance(), decimal.NewFromInt(0))
+	assert.Equal(t, recieverAccount.GetBalance(), senderMoney.Add(recieverMoney))
+}
+
+func TestGetAccountSentTxn(t *testing.T) {
+	// t.Parallel()
+	senderAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	recieverAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, senderAccount)
+	restyPostAccount(server, recieverAccount)
+
+	res, _ := restyGetAccountSentTxns(server, senderAccount)
+	assert.Equal(t, res.StatusCode(), 404)
+
+	senderTestTxn1, err := setupAccountTxn(senderAccount, recieverAccount)
+	assert.NoError(t, err)
+	restyCreateAccountTxn(server, senderAccount, senderTestTxn1)
+
+	res, err = restyGetAccountSentTxns(server, senderAccount)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 200)
+
+	var resBody []interface{}
+
+	err = json.Unmarshal(res.Body(), &resBody)
+	assert.NoError(t, err)
+	assert.Len(t, resBody, 1)
+}
+
+func TestGetAccountRecievedTxn(t *testing.T) {
+	// t.Parallel()
+	senderAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	recieverAccount, err := setupAccount()
+	assert.NoError(t, err)
+
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, senderAccount)
+	restyPostAccount(server, recieverAccount)
+
+	res, err := restyGetAccountRecievedTxns(server, recieverAccount)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 404)
+
+	senderTestTxn1, _ := setupAccountTxn(senderAccount, recieverAccount)
+	restyCreateAccountTxn(server, senderAccount, senderTestTxn1)
+
+	res, err = restyGetAccountRecievedTxns(server, recieverAccount)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 200)
+
+	var resBody []interface{}
+
+	err = json.Unmarshal(res.Body(), &resBody)
+	assert.NoError(t, err)
+	assert.Len(t, resBody, 1)
+}
+
+func TestGetAllTxns(t *testing.T) {
+	// t.Parallel()
+	acc1, err := setupAccount()
+	assert.NoError(t, err)
+
+	acc2, err := setupAccount()
+	assert.NoError(t, err)
+
+	acc3, err := setupAccount()
+	assert.NoError(t, err)
+
+	acc4, err := setupAccount()
+	assert.NoError(t, err)
+
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, acc1)
+	restyPostAccount(server, acc2)
+	restyPostAccount(server, acc3)
+	restyPostAccount(server, acc4)
+
+	senderTestTxn1, err := setupAccountTxn(acc1, acc2)
+	assert.NoError(t, err)
+	restyCreateAccountTxn(server, acc1, senderTestTxn1)
+
+	senderTestTxn2, err := setupAccountTxn(acc3, acc4)
+	assert.NoError(t, err)
+	restyCreateAccountTxn(server, acc3, senderTestTxn2)
+
+	res, err := restyGetAllTxns(server)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 200)
+
+	var resBody []interface{}
+
+	err = json.Unmarshal(res.Body(), &resBody)
+	assert.NoError(t, err)
+	assert.Len(t, resBody, 2)
+}
+
+func TestGetTxnByID(t *testing.T) {
+	// t.Parallel()
+	acc1, err := setupAccount()
+	assert.NoError(t, err)
+
+	acc2, err := setupAccount()
+	assert.NoError(t, err)
+
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, acc1)
+	restyPostAccount(server, acc2)
+
+	senderTestTxn1, err := setupAccountTxn(acc1, acc2)
+	assert.NoError(t, err)
+	restyCreateAccountTxn(server, acc1, senderTestTxn1)
+
+	res, err := restyGetTxnByID(server, senderTestTxn1)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 200)
+
+	resBody, err := models.NewTransaction(res.Body())
+
+	assert.NoError(t, err)
+	assert.Equal(t, resBody.GetSenderID(), acc1.GetID())
+	assert.Equal(t, resBody.GetRecieverID(), senderTestTxn1.GetRecieverID())
+}
+
+func TestDelTxnByID(t *testing.T) {
+	// t.Parallel()
+	acc1, err := setupAccount()
+	assert.NoError(t, err)
+
+	acc2, err := setupAccount()
+	assert.NoError(t, err)
+
+	handler := api.NewServer()
+	server := httptest.NewServer(handler.Router)
+
+	defer server.Close()
+
+	restyPostAccount(server, acc1)
+	restyPostAccount(server, acc2)
+
+	senderTestTxn1, err := setupAccountTxn(acc1, acc2)
+	assert.NoError(t, err)
+	restyCreateAccountTxn(server, acc1, senderTestTxn1)
+
+	res, err := restyDelTxnByID(server, senderTestTxn1)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 204)
+
+	res, err = restyGetTxnByID(server, senderTestTxn1)
+	assert.NoError(t, err)
+	assert.Equal(t, res.StatusCode(), 404)
+}
+
 func setupAccount() (models.IAccount, error) {
 	name := utils.RandStringBytes(10)
 	balance := decimal.NewFromFloat(utils.RandFloat(10.99, 1000.99))
@@ -230,6 +443,55 @@ func restyPatchAccount(server *httptest.Server, account models.IAccount) (*resty
 		SetHeader("Content-Type", "application/json").
 		SetBody(account).
 		Patch(server.URL + fmt.Sprintf("/api/v1/accounts/%v", account.GetID()))
+}
+
+func setupAccountTxn(sender models.IAccount, reciever models.IAccount) (models.ITransaction, error) {
+	byt := []byte(fmt.Sprintf("{\"reciever_id\":\"%v\",\"amount\":\"%v\"}", reciever.GetID(), sender.GetBalance()))
+
+	return models.NewTransaction(byt)
+}
+
+func restyCreateAccountTxn(server *httptest.Server, account models.IAccount, txn models.ITransaction) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(txn).
+		Post(server.URL + fmt.Sprintf("/api/v1/accounts/%v/transactions", account.GetID()))
+}
+
+func restyGetAccountSentTxns(server *httptest.Server, account models.IAccount) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		Get(server.URL + fmt.Sprintf("/api/v1/accounts/%v/transactions/sent", account.GetID()))
+}
+
+func restyGetAccountRecievedTxns(server *httptest.Server, account models.IAccount) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		Get(server.URL + fmt.Sprintf("/api/v1/accounts/%v/transactions/recieved", account.GetID()))
+}
+
+func restyGetAllTxns(server *httptest.Server) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		Get(server.URL + "/api/v1/transactions/")
+}
+
+func restyGetTxnByID(server *httptest.Server, txn models.ITransaction) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		Get(server.URL + fmt.Sprintf("/api/v1/transactions/%v", txn.GetID()))
+}
+
+func restyDelTxnByID(server *httptest.Server, txn models.ITransaction) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().
+		SetHeader("Content-Type", "application/json").
+		Delete(server.URL + fmt.Sprintf("/api/v1/transactions/%v", txn.GetID()))
 }
 
 func matchAccounts(t *testing.T, acc1 models.IAccount, acc2 models.IAccount) {
