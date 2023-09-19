@@ -12,6 +12,7 @@ import (
 
 type AccountsServiceHandler struct {
 	store *store.Datastore
+	sync.Mutex
 }
 
 func NewAccountsServiceHandler(store *store.Datastore) *AccountsServiceHandler {
@@ -79,4 +80,54 @@ func (svc *AccountsServiceHandler) DelOneByID(id uuid.UUID) bool {
 
 	svc.store.AccountsByID.Del(id)
 	return true
+}
+
+func (svc *AccountsServiceHandler) GetTxnsBySenderID(id uuid.UUID) (interface{}, bool) {
+	txnsBySenderID, exists := svc.store.TransactionsBySender[id]
+	return txnsBySenderID, exists
+}
+
+func (svc *AccountsServiceHandler) GetTxnsByRecieverID(id uuid.UUID) (interface{}, bool) {
+	txnsByRecieverID, exists := svc.store.TransactionsByReciever[id]
+	return txnsByRecieverID, exists
+}
+
+func (svc *AccountsServiceHandler) CreateTxn(txn models.ITransaction) error {
+	acc1, exists := svc.GetOneByID(txn.GetRecieverID())
+	if !exists {
+		return errors.New("reciever account is not exists")
+	}
+
+	acc2, exists := svc.GetOneByID(txn.GetSenderID())
+	if !exists {
+		return errors.New("sender account is not exists")
+	}
+
+	recieverAccount := acc1.(models.IAccount)
+	senderAccount := acc2.(models.IAccount)
+
+	smallerIDAcc, largerIDAcc := models.SortAccounts(recieverAccount, senderAccount, false)
+
+	// lock accounts in order based on sorting IDs to avoid deadlocks
+	smallerIDAcc.Lock()
+	largerIDAcc.Lock()
+
+	// Check if the sender has sufficient balance
+	if senderAccount.GetBalance().Cmp(txn.GetAmount()) == -1 {
+		return errors.New("insufficient funds")
+	}
+
+	// Perform the transfer
+	senderAccount.SubBalance(txn.GetAmount())
+	recieverAccount.AddBalance(txn.GetAmount())
+
+	// release locks in reverse order
+	smallerIDAcc.UnLock()
+	largerIDAcc.UnLock()
+
+	// save results (Note that Set could be concurrently but it's thread-safe)
+	svc.store.TransactionsByID.Set(txn.GetID(), txn)
+	svc.store.TransactionsBySender[senderAccount.GetID()] = append(svc.store.TransactionsBySender[senderAccount.GetID()], txn)
+	svc.store.TransactionsByReciever[recieverAccount.GetID()] = append(svc.store.TransactionsByReciever[recieverAccount.GetID()], txn)
+	return nil
 }

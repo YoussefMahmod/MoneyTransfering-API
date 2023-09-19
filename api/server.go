@@ -31,6 +31,7 @@ func NewServer() *Server {
 	dataStore := store.NewDatastore()
 
 	Account{}.router(s, services.NewAccountsServiceHandler(dataStore))
+	Transaction{}.router(s, services.NewTransactionsServiceHandler(dataStore))
 
 	return s
 }

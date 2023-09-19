@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +25,10 @@ type IAccount interface {
 	GetCreatedAt() time.Time
 	GetUpdatedAt() time.Time
 	SetUpdatedAt(t time.Time)
+	Lock()
+	UnLock()
+	RLock()
+	RUnLock()
 }
 
 type account struct {
@@ -32,6 +37,7 @@ type account struct {
 	Balance   decimal.Decimal `json:"balance"`
 	CreatedAt time.Time       `json:"created_at"`
 	UpdatedAt time.Time       `json:"updated_at"`
+	Mu        sync.RWMutex    `json:"-"`
 }
 
 func NewAccount(data []byte) (IAccount, error) {
@@ -109,11 +115,11 @@ func (a *account) SetBalance(b decimal.Decimal) {
 }
 
 func (a *account) SubBalance(b decimal.Decimal) {
-	a.Balance.Sub(b)
+	a.Balance = a.Balance.Sub(b)
 }
 
 func (a *account) AddBalance(b decimal.Decimal) {
-	a.Balance.Add(b)
+	a.Balance = a.Balance.Add(b)
 }
 
 func (a *account) GetCreatedAt() time.Time {
@@ -126,4 +132,34 @@ func (a *account) GetUpdatedAt() time.Time {
 
 func (a *account) SetUpdatedAt(t time.Time) {
 	a.UpdatedAt = t
+}
+
+func (a *account) Lock() {
+	a.Mu.Lock()
+}
+
+func (a *account) UnLock() {
+	a.Mu.Unlock()
+}
+
+func (a *account) RLock() {
+	a.Mu.RLock()
+}
+
+func (a *account) RUnLock() {
+	a.Mu.RUnlock()
+}
+
+func SortAccounts(acc1 IAccount, acc2 IAccount, desc bool) (s IAccount, l IAccount) {
+	if desc {
+		if strings.Compare(acc1.GetID().String(), acc2.GetID().String()) == -1 {
+			return acc2, acc1
+		}
+		return acc1, acc2
+	}
+
+	if strings.Compare(acc1.GetID().String(), acc2.GetID().String()) == -1 {
+		return acc1, acc2
+	}
+	return acc2, acc1
 }

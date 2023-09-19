@@ -27,6 +27,10 @@ func (u Account) router(server *Server, svcHandler *services.AccountsServiceHand
 	serverGroup.POST("/bulk", u.createAccountsInBulk)
 	serverGroup.PATCH("/:id", u.patchAccount)
 	serverGroup.DELETE("/:id", u.delAccount)
+	// Transactions
+	serverGroup.GET("/:id/transactions/sent", u.getTxnsBySenderID)
+	serverGroup.GET("/:id/transactions/recieved", u.getTxnsByRecieverID)
+	serverGroup.POST("/:id/transactions", u.createTxn)
 }
 
 func (a *Account) getAccountsList(c *gin.Context) {
@@ -135,4 +139,71 @@ func (a *Account) delAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, gin.H{})
+}
+
+func (a *Account) getTxnsBySenderID(c *gin.Context) {
+	id := c.Param("id")
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	account, exists := a.serviceHandler.GetTxnsBySenderID(uuid)
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Element Not Found!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, account)
+}
+
+func (a *Account) getTxnsByRecieverID(c *gin.Context) {
+	id := c.Param("id")
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	account, exists := a.serviceHandler.GetTxnsByRecieverID(uuid)
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Element Not Found!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, account)
+}
+
+func (a *Account) createTxn(c *gin.Context) {
+	id := c.Param("id")
+	senderID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	txn, err := models.NewTransaction(body)
+	txn.SetSenderID(senderID)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = a.serviceHandler.CreateTxn(txn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, txn)
 }
