@@ -17,6 +17,11 @@ This is an API for transfer money between two accounts using GOLang.
 4. **Services**
   - Splited bulks into chunks and assign goroutine to increase the performance.
   - Used goroutine for inserting each element in chunk(As it now sharded).
+  - Handled Concurrent Transfering by `deadlock avoidance technique`.
+    - always `sort` IDs of both accounts to ensure consistancy behavior and locking.
+    - always lock the account with minimum ID value to avoid deadlock.
+    ***REF***: `services/account.go:111`
+
 
 5. **APIs**
   - Split the API into two resources `/accounts` and `/transactions`.
@@ -35,7 +40,7 @@ TODO:
 - setting a monitoring service for the API (Performance and Error).
 
 # Sequence Diagram
-![image](https://github.com/YoussefMahmod/MoneyTransfering-API/assets/53763508/d8630e6c-c810-4464-86f6-fc08c09f9705)
+![image](https://github.com/YoussefMahmod/MoneyTransfering-API/blob/main/assists/diagrams/v1_seq_diagram.png)
 
 # Upcoming features
 - [ ] Deactivate Accounts. As we could use the transactions' data history in training Ai Models to create a new AI-based features.
