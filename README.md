@@ -44,3 +44,4 @@ TODO:
 
 # Upcoming features
 - [ ] Deactivate Accounts. As we could use the transactions' data history in training Ai Models to create a new AI-based features.
+- [ ] Enhance data ingestion by using background jobs and queues.
